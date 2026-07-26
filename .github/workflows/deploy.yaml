@@ -25,3 +25,20 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/project-cicd:latest
+      
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+              docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_TOKEN }}
+              docker pull ${{ secrets.DOCKER_USERNAME }}/project-cicd:latest
+              docker stop project-cicd || true
+              docker rm project-cicd || true
+              docker run -d \
+              --name project-cicd \
+              -p 80:80 \
+              --restart unless-stopped \
+              ${{ secrets.DOCKER_USERNAME }}/project-cicd:latest
